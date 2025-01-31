@@ -1,8 +1,15 @@
 ---
-title: "Untitled"
-format: html
+title: "Lab 4"
+author: "Charlie Thrift"
+format: 
+  html: 
+    embed-resources: true
+    code-fold: show
+    toc: true
 execute:
-  eval: false
+  eval: true
+  message: false
+  warning: false
 ---
 
 
@@ -29,7 +36,32 @@ Load in the data using `read_csv`. Perform some exploratory analysis on the data
 
 
 ```{r}
+hdi_data <- read_csv("data/hdi_clean.csv")
 
+# exploration
+# PCA uses numerical data, so we should change our "hdicode" column from ranges to numbers
+## values are Low, Medium, High, and Very High
+hdi_data$hdicode_numeric <- NA
+hdi_data$hdicode_numeric[hdi_data$hdicode == "Low"]<- 1
+hdi_data$hdicode_numeric[hdi_data$hdicode == "Medium"]<- 2
+hdi_data$hdicode_numeric[hdi_data$hdicode == "High"]<- 3
+hdi_data$hdicode_numeric[hdi_data$hdicode == "Very High"]<- 4
+
+ggplot(hdi_data, aes(lat,mf_2021))+
+  geom_point(aes(color=hdicode))
+
+
+hdi_dat_long<-hdi_data %>% 
+  pivot_longer(names_to = "name",values_to = "value",where(is.numeric))
+
+ggplot(hdi_dat_long,aes(value))+
+  geom_histogram()+
+  facet_wrap(~name,scales="free_x")
+
+hdi_data <- hdi_data %>% 
+  drop_na() %>% 
+  mutate(gnipc_2021=log(gnipc_2021)) %>% 
+  mutate(hdicode=factor(hdicode, levels=c("Low","Medium","High","Very High")))
 ```
 
 
@@ -38,18 +70,14 @@ Run the pca using the `prcomp` function. What extra argument do we need to inclu
 
 ```{r}
 hdi_pca <- hdi_data %>% 
-  select(...) %>%
-  prcomp(...  )
+  select(where(is.numeric)) %>%
+  prcomp(scale=T)
+
+summary(hdi_pca)
 ```
 
 
 Examine the structure of the hdi_pca object. What do you think each piece means? Use documentation to help you understand the output.
-
-
-
-
-
-
 
 
 
@@ -59,6 +87,7 @@ hdi_pca$rotation
 ```
 
 What can we say about the contributions of these variables to PC1, PC2, and PC3?
+*Using summary(), we see that PC1 has 71.5% of the variation, and with PC2 we explain 81.1% of the variation. Looks like we should only keeo 2 Principal Components.*
 
 ## Scree Plots
 
@@ -69,17 +98,26 @@ Create a dataframe with the necessary indgreidents to make a screeplot. One piec
 ```{r}
 pc_names <- colnames(hdi_pca$rotation)
 
+variation <- c(0.7145, 0.0960, 0.07869, 0.03699, 
+               0.0286, 0.01838, 0.01137, 0.00884, 0.00659) #copied from summary above
+var <- ((hdi_pca$sdev)^2)/(sum((hdi_pca$sdev)^2)) # calculate the squared value of the standard deviation, then divde by the sum of all of those variances
+total <- (hdi_pca$sdev)^2
+
 # Use this data frame to make the screeplot
 pct_expl_df <- data.frame(pc=pc_names,
+                          variation=var,
+                          total = total
                           
   
   
 )
 
 # Screeplot
-
-
-
+ggplot(pct_expl_df, aes(pc,variation))+
+  geom_col(fill="cornflowerblue")+
+  theme_minimal()+
+  scale_y_continuous(labels=scales::percent,expand=c(0,0))+
+  labs(x="Principal Component",y="Variance Explained")
 ```
 
 
@@ -117,3 +155,10 @@ autoplot(hdi_pca,
 
 
 Complete the postlab exercise on your own. The data is stored in the data folder called `grazing_env.csv`.  The data is from a study on the effects of grazing on soil properties.  
+
+
+
+
+
+Github copilot is a tool that uses AI to help you write code.  It's not perfect, but it can be helpful.  You can install it as an extension in VSCode.  It's not perfect, but it can be helpful.  Here's an example of how it can help you write code.  The code below is not perfect, but it's a good start.  You can use it to help you write the code for the postlab.
+
